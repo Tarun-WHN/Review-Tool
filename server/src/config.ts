@@ -14,7 +14,7 @@ export const config = {
   port: parseInt(process.env.PORT ?? "4000", 10),
   jwtSecret: required("JWT_SECRET", "dev-insecure-secret"),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "7d",
-  clientOrigin: process.env.CLIENT_ORIGIN ?? "*",
+  clientOrigin: process.env.CLIENT_ORIGIN || "*",
   seedAdmin: {
     name: process.env.SEED_ADMIN_NAME ?? "Admin",
     email: process.env.SEED_ADMIN_EMAIL ?? "admin@warehousenow.local",

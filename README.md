@@ -64,8 +64,8 @@ cp .env.example .env
 #   - set JWT_SECRET and the SEED_ADMIN_* values
 #   The server reads /.env; Vite reads VITE_* vars from the same file.
 
-# 3. Create the schema + generate the Prisma client
-npm --workspace server run migrate:dev   # first run creates the migration
+# 3. Apply migrations + generate the Prisma client
+npm --workspace server run migrate:dev   # applies the committed 0_init migration
 
 # 4. Seed masters + the admin user
 npm run seed
