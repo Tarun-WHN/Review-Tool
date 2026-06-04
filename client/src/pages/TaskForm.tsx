@@ -45,6 +45,7 @@ export function TaskFormPage() {
   const [taskMasters, setTaskMasters] = useState<TaskMaster[]>([]);
   const [clients, setClients] = useState<NamedMaster[]>([]);
   const [warehouses, setWarehouses] = useState<NamedMaster[]>([]);
+  const [vendors, setVendors] = useState<NamedMaster[]>([]);
   const [assignable, setAssignable] = useState<UserRow[]>([]);
 
   const [categoryId, setCategoryId] = useState("");
@@ -52,6 +53,7 @@ export function TaskFormPage() {
   const [description, setDescription] = useState("");
   const [clientId, setClientId] = useState("");
   const [warehouseId, setWarehouseId] = useState("");
+  const [vendorId, setVendorId] = useState("");
   const [startDate, setStartDate] = useState(today());
   const [endDate, setEndDate] = useState("");
   const [ownerId, setOwnerId] = useState("");
@@ -72,6 +74,7 @@ export function TaskFormPage() {
     api.get<Category[]>("/categories").then(setCategories);
     api.get<NamedMaster[]>("/clients").then(setClients);
     api.get<NamedMaster[]>("/warehouses").then(setWarehouses);
+    api.get<NamedMaster[]>("/vendors").then(setVendors);
     api.get<UserRow[]>("/users/assignable").then(setAssignable);
   }, []);
 
@@ -89,6 +92,7 @@ export function TaskFormPage() {
       setDescription(task.description);
       setClientId(task.clientId ? String(task.clientId) : "");
       setWarehouseId(task.warehouseId ? String(task.warehouseId) : "");
+      setVendorId(task.vendorId ? String(task.vendorId) : "");
       setStartDate(task.startDate);
       setEndDate(task.endDate);
       setOwnerId(String(task.ownerId));
@@ -143,6 +147,7 @@ export function TaskFormPage() {
         description,
         clientId: clientId ? Number(clientId) : null,
         warehouseId: warehouseId ? Number(warehouseId) : null,
+        vendorId: vendorId ? Number(vendorId) : null,
         ownerId: Number(ownerId),
         startDate,
         remarks: remarks || null,
@@ -211,6 +216,14 @@ export function TaskFormPage() {
                 <option value="">None</option>
                 {warehouses.map((w) => (
                   <option key={w.id} value={w.id}>{w.name}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Vendor">
+              <select className={inputClass} value={vendorId} onChange={(e) => setVendorId(e.target.value)}>
+                <option value="">None</option>
+                {vendors.map((v) => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
                 ))}
               </select>
             </Field>

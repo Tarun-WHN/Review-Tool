@@ -34,6 +34,7 @@ async function queryTasks(req: AuthedRequest): Promise<SerializedTask[]> {
   if (q.taskMasterId) where.taskMasterId = Number(q.taskMasterId);
   if (q.clientId) where.clientId = Number(q.clientId);
   if (q.warehouseId) where.warehouseId = Number(q.warehouseId);
+  if (q.vendorId) where.vendorId = Number(q.vendorId);
   if (q.from || q.to) {
     where.endDate = {};
     if (q.from) (where.endDate as Prisma.DateTimeFilter).gte = parseDateOnly(String(q.from));
@@ -54,6 +55,7 @@ const COLUMNS: { header: string; get: (t: SerializedTask) => string | number }[]
   { header: "Description", get: (t) => t.description },
   { header: "Client", get: (t) => t.client?.name ?? "" },
   { header: "Warehouse", get: (t) => t.warehouse?.name ?? "" },
+  { header: "Vendor", get: (t) => t.vendor?.name ?? "" },
   { header: "Owner", get: (t) => t.owner.name },
   { header: "Created By", get: (t) => t.createdBy.name },
   { header: "Start Date", get: (t) => t.startDate },

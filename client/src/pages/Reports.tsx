@@ -9,6 +9,7 @@ export function ReportsPage() {
   const [taskMasters, setTaskMasters] = useState<TaskMaster[]>([]);
   const [clients, setClients] = useState<NamedMaster[]>([]);
   const [warehouses, setWarehouses] = useState<NamedMaster[]>([]);
+  const [vendors, setVendors] = useState<NamedMaster[]>([]);
   const [owners, setOwners] = useState<UserRow[]>([]);
 
   const [f, setF] = useState({
@@ -17,6 +18,7 @@ export function ReportsPage() {
     ownerId: "",
     clientId: "",
     warehouseId: "",
+    vendorId: "",
     status: "",
     from: "",
     to: "",
@@ -28,6 +30,7 @@ export function ReportsPage() {
     api.get<Category[]>("/categories").then(setCategories);
     api.get<NamedMaster[]>("/clients").then(setClients);
     api.get<NamedMaster[]>("/warehouses").then(setWarehouses);
+    api.get<NamedMaster[]>("/vendors").then(setVendors);
     api.get<UserRow[]>("/users/assignable").then(setOwners).catch(() => setOwners([]));
   }, []);
 
@@ -78,6 +81,10 @@ export function ReportsPage() {
           <select className={inputClass} value={f.clientId} onChange={(e) => set("clientId", e.target.value)}>
             <option value="">All clients</option>
             {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <select className={inputClass} value={f.vendorId} onChange={(e) => set("vendorId", e.target.value)}>
+            <option value="">All vendors</option>
+            {vendors.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
           </select>
           <select className={inputClass} value={f.warehouseId} onChange={(e) => set("warehouseId", e.target.value)}>
             <option value="">All warehouses</option>

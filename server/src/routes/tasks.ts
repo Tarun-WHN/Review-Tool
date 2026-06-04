@@ -113,6 +113,7 @@ tasksRouter.get("/", async (req: AuthedRequest, res) => {
   if (q.taskMasterId) where.taskMasterId = Number(q.taskMasterId);
   if (q.clientId) where.clientId = Number(q.clientId);
   if (q.warehouseId) where.warehouseId = Number(q.warehouseId);
+  if (q.vendorId) where.vendorId = Number(q.vendorId);
 
   // Date range filters apply to end_date (the execution end date).
   if (q.from || q.to) {
@@ -194,6 +195,7 @@ const createSchema = z.object({
   description: z.string().min(1),
   clientId: z.number().int().nullable().optional(),
   warehouseId: z.number().int().nullable().optional(),
+  vendorId: z.number().int().nullable().optional(),
   ownerId: z.number().int(),
   startDate: z.string().optional(), // YYYY-MM-DD; defaults to today
   endDate: z.string(),
@@ -264,6 +266,7 @@ tasksRouter.post("/", async (req: AuthedRequest, res) => {
       description: d.description,
       clientId: d.clientId ?? null,
       warehouseId: d.warehouseId ?? null,
+      vendorId: d.vendorId ?? null,
       ownerId: d.ownerId,
       createdById: me.id,
       startDate,
@@ -300,6 +303,7 @@ const editSchema = z.object({
   description: z.string().min(1).optional(),
   clientId: z.number().int().nullable().optional(),
   warehouseId: z.number().int().nullable().optional(),
+  vendorId: z.number().int().nullable().optional(),
   ownerId: z.number().int().optional(),
   startDate: z.string().optional(),
   remarks: z.string().nullable().optional(),
@@ -338,6 +342,8 @@ tasksRouter.put("/:id", async (req: AuthedRequest, res) => {
     if (d.clientId !== undefined) data.client = d.clientId ? { connect: { id: d.clientId } } : { disconnect: true };
     if (d.warehouseId !== undefined)
       data.warehouse = d.warehouseId ? { connect: { id: d.warehouseId } } : { disconnect: true };
+    if (d.vendorId !== undefined)
+      data.vendor = d.vendorId ? { connect: { id: d.vendorId } } : { disconnect: true };
 
     if (d.categoryId !== undefined || d.taskMasterId !== undefined) {
       const categoryId = d.categoryId ?? existing.categoryId;

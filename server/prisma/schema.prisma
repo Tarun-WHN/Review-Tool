@@ -102,6 +102,16 @@ model Warehouse {
   @@map("warehouses")
 }
 
+model Vendor {
+  id     Int     @id @default(autoincrement())
+  name   String
+  active Boolean @default(true)
+
+  taskEntries TaskEntry[]
+
+  @@map("vendors")
+}
+
 model TaskEntry {
   id                 Int       @id @default(autoincrement())
   categoryId         Int       @map("category_id")
@@ -109,6 +119,7 @@ model TaskEntry {
   description        String
   clientId           Int?      @map("client_id")
   warehouseId        Int?      @map("warehouse_id")
+  vendorId           Int?      @map("vendor_id")
   ownerId            Int       @map("owner_id")
   createdById        Int       @map("created_by")
   startDate          DateTime  @map("start_date") @db.Date
@@ -132,6 +143,7 @@ model TaskEntry {
   taskMaster TaskMaster @relation(fields: [taskMasterId], references: [id])
   client     Client?    @relation(fields: [clientId], references: [id])
   warehouse  Warehouse? @relation(fields: [warehouseId], references: [id])
+  vendor     Vendor?    @relation(fields: [vendorId], references: [id])
   owner      User       @relation("OwnerTasks", fields: [ownerId], references: [id])
   createdBy  User       @relation("CreatedTasks", fields: [createdById], references: [id])
 

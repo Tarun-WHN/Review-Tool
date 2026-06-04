@@ -86,6 +86,7 @@ export function TaskDetailPage() {
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-3">
           <Info label="Owner" value={task.owner.name} />
           <Info label="Created by" value={task.createdBy.name} />
+          <Info label="Vendor" value={task.vendor?.name ?? "—"} />
           <Info label="Start Date" value={task.startDate} />
           <Info label="End Date" value={task.endDate} />
           <Info label="Duration" value={`${task.durationDays} days`} />

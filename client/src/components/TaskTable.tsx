@@ -26,6 +26,7 @@ export function TaskTable({
             <th className="px-3 py-2">Status</th>
             {!compact && <th className="px-3 py-2">Client</th>}
             {!compact && <th className="px-3 py-2">Warehouse</th>}
+            {!compact && <th className="px-3 py-2">Vendor</th>}
             <th className="px-3 py-2">Category / Task</th>
             {!compact && <th className="px-3 py-2">Owner</th>}
             <th className="px-3 py-2">End Date</th>
@@ -56,12 +57,18 @@ export function TaskTable({
                   {t.warehouse?.name ?? <span className="text-slate-400">—</span>}
                 </td>
               )}
+              {!compact && (
+                <td className="px-3 py-2 whitespace-nowrap text-slate-700">
+                  {t.vendor?.name ?? <span className="text-slate-400">—</span>}
+                </td>
+              )}
               <td className="px-3 py-2">
                 <div className="font-medium text-slate-800">{t.taskMaster.name}</div>
                 <div className="text-xs text-slate-500">
                   {t.category.name}
                   {compact && t.client ? ` · ${t.client.name}` : ""}
                   {compact && t.warehouse ? ` · ${t.warehouse.name}` : ""}
+                  {compact && t.vendor ? ` · ${t.vendor.name}` : ""}
                 </div>
               </td>
               {!compact && <td className="px-3 py-2 text-slate-700">{t.owner.name}</td>}

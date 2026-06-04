@@ -15,6 +15,7 @@ interface Filters {
   ownerId: string;
   clientId: string;
   warehouseId: string;
+  vendorId: string;
   status: string;
   from: string;
   to: string;
@@ -26,6 +27,7 @@ const EMPTY: Filters = {
   ownerId: "",
   clientId: "",
   warehouseId: "",
+  vendorId: "",
   status: "",
   from: "",
   to: "",
@@ -46,12 +48,14 @@ export function DashboardPage() {
   const [taskMasters, setTaskMasters] = useState<TaskMaster[]>([]);
   const [clients, setClients] = useState<NamedMaster[]>([]);
   const [warehouses, setWarehouses] = useState<NamedMaster[]>([]);
+  const [vendors, setVendors] = useState<NamedMaster[]>([]);
   const [owners, setOwners] = useState<UserRow[]>([]);
 
   useEffect(() => {
     api.get<Category[]>("/categories").then(setCategories);
     api.get<NamedMaster[]>("/clients").then(setClients);
     api.get<NamedMaster[]>("/warehouses").then(setWarehouses);
+    api.get<NamedMaster[]>("/vendors").then(setVendors);
     api.get<UserRow[]>("/users/assignable").then(setOwners).catch(() => setOwners([]));
   }, []);
 
@@ -210,6 +214,12 @@ export function DashboardPage() {
               <option value="">All warehouses</option>
               {warehouses.map((w) => (
                 <option key={w.id} value={w.id}>{w.name}</option>
+              ))}
+            </select>
+            <select className={inputClass} value={filters.vendorId} onChange={(e) => set("vendorId", e.target.value)}>
+              <option value="">All vendors</option>
+              {vendors.map((v) => (
+                <option key={v.id} value={v.id}>{v.name}</option>
               ))}
             </select>
             <label className="flex items-center gap-1 text-sm">

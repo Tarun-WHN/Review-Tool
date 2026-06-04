@@ -7,6 +7,7 @@ export const taskInclude = {
   taskMaster: true,
   client: true,
   warehouse: true,
+  vendor: true,
   owner: { select: { id: true, name: true, email: true, role: true } },
   createdBy: { select: { id: true, name: true, email: true } },
 } satisfies Prisma.TaskEntryInclude;
@@ -49,6 +50,8 @@ export function serializeTask(task: TaskWithRelations, now = new Date()) {
     client: task.client ? { id: task.client.id, name: task.client.name } : null,
     warehouseId: task.warehouseId,
     warehouse: task.warehouse ? { id: task.warehouse.id, name: task.warehouse.name } : null,
+    vendorId: task.vendorId,
+    vendor: task.vendor ? { id: task.vendor.id, name: task.vendor.name } : null,
     ownerId: task.ownerId,
     owner: task.owner,
     createdById: task.createdById,

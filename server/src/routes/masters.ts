@@ -109,7 +109,7 @@ mastersRouter.put("/task-masters/:id", adminOnly, async (req: AuthedRequest, res
 
 const simpleSchema = z.object({ name: z.string().min(1), active: z.boolean().optional() });
 
-function makeSimpleMaster(path: "clients" | "warehouses", model: "client" | "warehouse") {
+function makeSimpleMaster(path: "clients" | "warehouses" | "vendors", model: "client" | "warehouse" | "vendor") {
   mastersRouter.get(`/${path}`, async (req, res) => {
     const includeInactive = req.query.all === "true";
     // @ts-expect-error dynamic model access
@@ -142,3 +142,4 @@ function makeSimpleMaster(path: "clients" | "warehouses", model: "client" | "war
 
 makeSimpleMaster("clients", "client");
 makeSimpleMaster("warehouses", "warehouse");
+makeSimpleMaster("vendors", "vendor");

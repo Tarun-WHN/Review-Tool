@@ -68,6 +68,8 @@ export interface Task {
   client: { id: number; name: string } | null;
   warehouseId: number | null;
   warehouse: { id: number; name: string } | null;
+  vendorId: number | null;
+  vendor: { id: number; name: string } | null;
   ownerId: number;
   owner: { id: number; name: string; email: string; role: Role };
   createdById: number;

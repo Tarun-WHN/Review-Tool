@@ -3,13 +3,14 @@ import { api, qs } from "../api";
 import { Category, NamedMaster, TaskMaster, UserRow } from "../types";
 import { Button, Card, ErrorText, Field, inputClass } from "../ui";
 
-type Tab = "categories" | "tasks" | "clients" | "warehouses" | "users";
+type Tab = "categories" | "tasks" | "clients" | "warehouses" | "vendors" | "users";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "categories", label: "Categories" },
   { key: "tasks", label: "Task Masters" },
   { key: "clients", label: "Clients" },
   { key: "warehouses", label: "Warehouses" },
+  { key: "vendors", label: "Vendors" },
   { key: "users", label: "Users" },
 ];
 
@@ -35,6 +36,7 @@ export function MastersPage() {
       {tab === "tasks" && <TaskMastersTab />}
       {tab === "clients" && <SimpleTab path="clients" label="Client" />}
       {tab === "warehouses" && <SimpleTab path="warehouses" label="Warehouse" />}
+      {tab === "vendors" && <SimpleTab path="vendors" label="Vendor" />}
       {tab === "users" && <UsersTab />}
     </div>
   );
@@ -211,7 +213,7 @@ function TaskMastersTab() {
 
 /* ------------------------- Clients & Warehouses ------------------------- */
 
-function SimpleTab({ path, label }: { path: "clients" | "warehouses"; label: string }) {
+function SimpleTab({ path, label }: { path: "clients" | "warehouses" | "vendors"; label: string }) {
   const [rows, setRows] = useState<NamedMaster[]>([]);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
