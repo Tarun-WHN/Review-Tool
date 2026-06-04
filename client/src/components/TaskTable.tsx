@@ -18,6 +18,7 @@ export function TaskTable({ tasks, compact = false }: { tasks: Task[]; compact?:
             <th className="px-3 py-2">End Date</th>
             <th className="px-3 py-2">Due In</th>
             <th className="px-3 py-2">Overdue</th>
+            <th className="px-3 py-2">Follow-up</th>
             <th className="px-3 py-2">Flags</th>
           </tr>
         </thead>
@@ -43,6 +44,15 @@ export function TaskTable({ tasks, compact = false }: { tasks: Task[]; compact?:
               <td className="px-3 py-2 whitespace-nowrap text-slate-700">{t.endDate}</td>
               <td className="px-3 py-2 text-slate-600">{t.dueIn}</td>
               <td className="px-3 py-2 text-slate-600">{t.overdueDays > 0 ? `${t.overdueDays}d` : "—"}</td>
+              <td className="px-3 py-2 whitespace-nowrap">
+                {t.followUpDue ? (
+                  <Badge tone="amber">Due today</Badge>
+                ) : t.nextFollowUp ? (
+                  <span className="text-xs text-slate-600">{t.nextFollowUp}</span>
+                ) : (
+                  <span className="text-slate-400">—</span>
+                )}
+              </td>
               <td className="px-3 py-2">
                 {t.endDateChangeCount > 0 && <Badge tone="purple">Date changed ×{t.endDateChangeCount}</Badge>}
               </td>

@@ -24,6 +24,14 @@ enum ChangeRequestStatus {
   rejected
 }
 
+enum FollowUpType {
+  none
+  once
+  interval
+  weekly
+  monthly
+}
+
 model User {
   id                 Int      @id @default(autoincrement())
   name               String
@@ -108,8 +116,14 @@ model TaskEntry {
   remarks            String?
   bottleneck         String?
   correctiveAction   String?   @map("corrective_action")
-  followUpDate       DateTime? @map("follow_up_date") @db.Date
-  endDateChangeCount Int       @default(0) @map("end_date_change_count")
+  // Follow-up schedule. followUpDate doubles as the one-off date (type=once) and
+  // the recurrence anchor / "start from" date (interval/weekly/monthly).
+  followUpDate       DateTime?    @map("follow_up_date") @db.Date
+  followUpType       FollowUpType @default(none) @map("follow_up_type")
+  followUpInterval   Int?         @map("follow_up_interval") // every N days (type=interval)
+  followUpWeekdays   Int[]        @default([]) @map("follow_up_weekdays") // 0=Sun..6=Sat (type=weekly)
+  followUpMonthDays  Int[]        @default([]) @map("follow_up_month_days") // 1..31 (type=monthly)
+  endDateChangeCount Int          @default(0) @map("end_date_change_count")
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @updatedAt @map("updated_at")
 

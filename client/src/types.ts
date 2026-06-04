@@ -8,6 +8,8 @@ export type TaskStatus =
   | "Dead"
   | "Completed";
 
+export type FollowUpType = "none" | "once" | "interval" | "weekly" | "monthly";
+
 export interface AuthUser {
   id: number;
   name: string;
@@ -76,6 +78,13 @@ export interface Task {
   bottleneck: string | null;
   correctiveAction: string | null;
   followUpDate: string | null;
+  followUpType: FollowUpType;
+  followUpInterval: number | null;
+  followUpWeekdays: number[];
+  followUpMonthDays: number[];
+  nextFollowUp: string | null;
+  followUpDue: boolean;
+  followUpLabel: string;
   endDateChangeCount: number;
   createdAt: string;
   updatedAt: string;

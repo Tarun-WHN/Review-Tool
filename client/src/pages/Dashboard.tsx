@@ -35,6 +35,7 @@ export function DashboardPage() {
   const { user } = useAuth();
   const [scope, setScope] = useState<Scope>(user?.role === "member" ? "mine" : "all");
   const [filters, setFilters] = useState<Filters>(EMPTY);
+  const [followUpDue, setFollowUpDue] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [counts, setCounts] = useState<StatusCounts | null>(null);
   const [loading, setLoading] = useState(true);
@@ -62,8 +63,8 @@ export function DashboardPage() {
   }, [filters.categoryId]);
 
   const query = useMemo(
-    () => qs({ ...filters, scope: scope === "all" ? "" : scope }),
-    [filters, scope]
+    () => qs({ ...filters, scope: scope === "all" ? "" : scope, followUpDue: followUpDue ? "true" : "" }),
+    [filters, scope, followUpDue]
   );
 
   useEffect(() => {
@@ -88,6 +89,19 @@ export function DashboardPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold text-slate-800">Dashboard</h1>
+        <div className="flex flex-wrap items-center gap-3">
+        {!showTree && (
+          <button
+            onClick={() => setFollowUpDue((v) => !v)}
+            className={`rounded-md border px-3 py-1 text-sm font-medium ${
+              followUpDue
+                ? "border-amber-400 bg-amber-100 text-amber-800"
+                : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            Due for follow-up
+          </button>
+        )}
         <div className="flex gap-1 rounded-lg bg-slate-200 p-1">
           {(["all", "mine", "team"] as Scope[])
             .filter((s) => !(s === "team" && user?.role === "member") && !(s === "all" && user?.role === "member"))
@@ -102,6 +116,7 @@ export function DashboardPage() {
                 {s === "team" ? "My Team" : s}
               </button>
             ))}
+        </div>
         </div>
       </div>
 

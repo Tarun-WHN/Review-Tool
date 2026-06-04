@@ -24,6 +24,56 @@ function parseDateOnly(s: string): Date {
   return new Date(`${s}T00:00:00.000Z`);
 }
 
+/* --------------------------- Follow-up schedule --------------------------- */
+
+const followUpSchema = {
+  followUpType: z.enum(["none", "once", "interval", "weekly", "monthly"]).optional(),
+  followUpDate: z.string().nullable().optional(),
+  followUpInterval: z.number().int().positive().nullable().optional(),
+  followUpWeekdays: z.array(z.number().int().min(0).max(6)).optional(),
+  followUpMonthDays: z.array(z.number().int().min(1).max(31)).optional(),
+};
+
+type FollowUpInput = {
+  followUpType?: "none" | "once" | "interval" | "weekly" | "monthly";
+  followUpDate?: string | null;
+  followUpInterval?: number | null;
+  followUpWeekdays?: number[];
+  followUpMonthDays?: number[];
+};
+
+interface FollowUpData {
+  followUpType: "none" | "once" | "interval" | "weekly" | "monthly";
+  followUpDate: Date | null;
+  followUpInterval: number | null;
+  followUpWeekdays: number[];
+  followUpMonthDays: number[];
+}
+
+/** Validate + normalize follow-up input into Prisma-ready scalar fields, or an error. */
+function buildFollowUp(d: FollowUpInput): { data: FollowUpData } | { error: string } {
+  const type = d.followUpType ?? "none";
+  const date = d.followUpDate ? parseDateOnly(d.followUpDate) : null;
+  const weekdays = [...new Set(d.followUpWeekdays ?? [])].sort((a, b) => a - b);
+  const monthDays = [...new Set(d.followUpMonthDays ?? [])].sort((a, b) => a - b);
+
+  if (type === "once" && !date) return { error: "Follow-up: a date is required for a one-off follow-up" };
+  if (type === "interval" && (!d.followUpInterval || d.followUpInterval < 1))
+    return { error: "Follow-up: interval (every N days) must be at least 1" };
+  if (type === "weekly" && weekdays.length === 0) return { error: "Follow-up: select at least one weekday" };
+  if (type === "monthly" && monthDays.length === 0) return { error: "Follow-up: select at least one day of the month" };
+
+  return {
+    data: {
+      followUpType: type,
+      followUpDate: date,
+      followUpInterval: type === "interval" ? d.followUpInterval ?? null : null,
+      followUpWeekdays: type === "weekly" ? weekdays : [],
+      followUpMonthDays: type === "monthly" ? monthDays : [],
+    },
+  };
+}
+
 /* -------------------------------- List -------------------------------- */
 
 tasksRouter.get("/", async (req: AuthedRequest, res) => {
@@ -86,6 +136,11 @@ tasksRouter.get("/", async (req: AuthedRequest, res) => {
     serialized = serialized.filter((t) => t.status === statusFilter);
   }
 
+  // "Due for follow-up today" is computed, so filter after serialization too.
+  if (q.followUpDue === "true") {
+    serialized = serialized.filter((t) => t.followUpDue);
+  }
+
   // KPI counts per status (over the filtered set, ignoring status filter).
   const counts: Record<TaskStatus, number> = {
     Ongoing: 0,
@@ -145,7 +200,7 @@ const createSchema = z.object({
   remarks: z.string().nullable().optional(),
   bottleneck: z.string().nullable().optional(),
   correctiveAction: z.string().nullable().optional(),
-  followUpDate: z.string().nullable().optional(),
+  ...followUpSchema,
 });
 
 async function assertAssignable(req: AuthedRequest, ownerId: number): Promise<string | null> {
@@ -198,6 +253,9 @@ tasksRouter.post("/", async (req: AuthedRequest, res) => {
     return res.status(400).json({ error: `Bottleneck and Corrective Action are required when status is ${status}` });
   }
 
+  const fu = buildFollowUp(d);
+  if ("error" in fu) return res.status(400).json({ error: fu.error });
+
   const created = await prisma.taskEntry.create({
     data: {
       categoryId: d.categoryId,
@@ -212,7 +270,11 @@ tasksRouter.post("/", async (req: AuthedRequest, res) => {
       remarks: d.remarks ?? null,
       bottleneck: d.bottleneck ?? null,
       correctiveAction: d.correctiveAction ?? null,
-      followUpDate: d.followUpDate ? parseDateOnly(d.followUpDate) : null,
+      followUpType: fu.data.followUpType,
+      followUpDate: fu.data.followUpDate,
+      followUpInterval: fu.data.followUpInterval,
+      followUpWeekdays: fu.data.followUpWeekdays as number[],
+      followUpMonthDays: fu.data.followUpMonthDays as number[],
     },
     include: taskInclude,
   });
@@ -242,7 +304,7 @@ const editSchema = z.object({
   remarks: z.string().nullable().optional(),
   bottleneck: z.string().nullable().optional(),
   correctiveAction: z.string().nullable().optional(),
-  followUpDate: z.string().nullable().optional(),
+  ...followUpSchema,
 });
 
 tasksRouter.put("/:id", async (req: AuthedRequest, res) => {
@@ -303,7 +365,25 @@ tasksRouter.put("/:id", async (req: AuthedRequest, res) => {
   if (d.remarks !== undefined) data.remarks = d.remarks;
   if (d.bottleneck !== undefined) data.bottleneck = d.bottleneck;
   if (d.correctiveAction !== undefined) data.correctiveAction = d.correctiveAction;
-  if (d.followUpDate !== undefined) data.followUpDate = d.followUpDate ? parseDateOnly(d.followUpDate) : null;
+
+  // Apply the follow-up schedule when any follow-up field is provided.
+  const followUpProvided =
+    d.followUpType !== undefined ||
+    d.followUpDate !== undefined ||
+    d.followUpInterval !== undefined ||
+    d.followUpWeekdays !== undefined ||
+    d.followUpMonthDays !== undefined;
+  if (followUpProvided) {
+    const fu = buildFollowUp({
+      followUpType: d.followUpType ?? (existing.followUpType as FollowUpInput["followUpType"]),
+      followUpDate: d.followUpDate,
+      followUpInterval: d.followUpInterval,
+      followUpWeekdays: d.followUpWeekdays,
+      followUpMonthDays: d.followUpMonthDays,
+    });
+    if ("error" in fu) return res.status(400).json({ error: fu.error });
+    Object.assign(data, fu.data);
+  }
 
   // Re-validate corrective requirements against current status.
   const finalCategory = d.categoryId

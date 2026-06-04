@@ -66,7 +66,8 @@ const COLUMNS: { header: string; get: (t: SerializedTask) => string | number }[]
   { header: "Remarks", get: (t) => t.remarks ?? "" },
   { header: "Bottleneck", get: (t) => t.bottleneck ?? "" },
   { header: "Corrective Action", get: (t) => t.correctiveAction ?? "" },
-  { header: "Follow-up Date", get: (t) => t.followUpDate ?? "" },
+  { header: "Follow-up Schedule", get: (t) => t.followUpLabel ?? "" },
+  { header: "Next Follow-up", get: (t) => t.nextFollowUp ?? "" },
   { header: "Completed At", get: (t) => t.completedAt ?? "" },
 ];
 

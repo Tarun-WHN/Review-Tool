@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { deriveFields } from "./statusEngine";
+import { computeNextFollowUp, isFollowUpDueToday, describeFollowUp, FollowUpType } from "./followUp";
 
 export const taskInclude = {
   category: true,
@@ -26,6 +27,16 @@ export function serializeTask(task: TaskWithRelations, now = new Date()) {
     now,
   });
 
+  const scheduleArg = {
+    followUpType: task.followUpType as FollowUpType,
+    followUpDate: task.followUpDate,
+    followUpInterval: task.followUpInterval,
+    followUpWeekdays: task.followUpWeekdays,
+    followUpMonthDays: task.followUpMonthDays,
+  };
+  const nextFollowUp = computeNextFollowUp(scheduleArg, now);
+  const followUpDue = isFollowUpDueToday(scheduleArg, now);
+
   return {
     id: task.id,
     categoryId: task.categoryId,
@@ -48,6 +59,13 @@ export function serializeTask(task: TaskWithRelations, now = new Date()) {
     bottleneck: task.bottleneck,
     correctiveAction: task.correctiveAction,
     followUpDate: task.followUpDate ? task.followUpDate.toISOString().slice(0, 10) : null,
+    followUpType: task.followUpType as FollowUpType,
+    followUpInterval: task.followUpInterval,
+    followUpWeekdays: task.followUpWeekdays,
+    followUpMonthDays: task.followUpMonthDays,
+    nextFollowUp: nextFollowUp ? nextFollowUp.toISOString().slice(0, 10) : null,
+    followUpDue,
+    followUpLabel: describeFollowUp(scheduleArg),
     endDateChangeCount: task.endDateChangeCount,
     createdAt: task.createdAt.toISOString(),
     updatedAt: task.updatedAt.toISOString(),

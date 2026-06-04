@@ -28,8 +28,13 @@ export function StatusChip({ status }: { status: TaskStatus }) {
   );
 }
 
-export function Badge({ children, tone = "slate" }: { children: ReactNode; tone?: "slate" | "purple" }) {
-  const styles = tone === "purple" ? "bg-purple-100 text-purple-800" : "bg-slate-200 text-slate-700";
+export function Badge({ children, tone = "slate" }: { children: ReactNode; tone?: "slate" | "purple" | "amber" }) {
+  const styles =
+    tone === "purple"
+      ? "bg-purple-100 text-purple-800"
+      : tone === "amber"
+        ? "bg-amber-100 text-amber-800"
+        : "bg-slate-200 text-slate-700";
   return <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${styles}`}>{children}</span>;
 }
 

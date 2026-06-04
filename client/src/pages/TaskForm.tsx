@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, qs } from "../api";
-import { Category, NamedMaster, Task, TaskMaster, UserRow } from "../types";
+import { Category, FollowUpType, NamedMaster, Task, TaskMaster, UserRow } from "../types";
 import { Button, Card, ErrorText, Field, inputClass } from "../ui";
 
 function today(): string {
@@ -21,6 +21,19 @@ function dueInLabel(d: number): string {
   if (d <= 31) return "Month";
   if (d <= 92) return "Quarter";
   return "Quarter+";
+}
+
+const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const FOLLOW_UP_TYPES: { value: FollowUpType; label: string }[] = [
+  { value: "none", label: "No follow-up" },
+  { value: "once", label: "Once (single date)" },
+  { value: "interval", label: "Every N days" },
+  { value: "weekly", label: "Weekly (weekdays)" },
+  { value: "monthly", label: "Monthly (dates)" },
+];
+
+function toggle(list: number[], v: number): number[] {
+  return list.includes(v) ? list.filter((x) => x !== v) : [...list, v].sort((a, b) => a - b);
 }
 
 export function TaskFormPage() {
@@ -45,7 +58,11 @@ export function TaskFormPage() {
   const [remarks, setRemarks] = useState("");
   const [bottleneck, setBottleneck] = useState("");
   const [correctiveAction, setCorrectiveAction] = useState("");
+  const [followUpType, setFollowUpType] = useState<FollowUpType>("none");
   const [followUpDate, setFollowUpDate] = useState("");
+  const [followUpInterval, setFollowUpInterval] = useState("2");
+  const [followUpWeekdays, setFollowUpWeekdays] = useState<number[]>([]);
+  const [followUpMonthDays, setFollowUpMonthDays] = useState<number[]>([]);
 
   const [existing, setExisting] = useState<Task | null>(null);
   const [error, setError] = useState("");
@@ -78,7 +95,11 @@ export function TaskFormPage() {
       setRemarks(task.remarks ?? "");
       setBottleneck(task.bottleneck ?? "");
       setCorrectiveAction(task.correctiveAction ?? "");
+      setFollowUpType(task.followUpType ?? "none");
       setFollowUpDate(task.followUpDate ?? "");
+      setFollowUpInterval(task.followUpInterval ? String(task.followUpInterval) : "2");
+      setFollowUpWeekdays(task.followUpWeekdays ?? []);
+      setFollowUpMonthDays(task.followUpMonthDays ?? []);
     });
   }, [id]);
 
@@ -98,6 +119,22 @@ export function TaskFormPage() {
       setError("End date must be on or after start date.");
       return;
     }
+    if (followUpType === "once" && !followUpDate) {
+      setError("Pick a follow-up date.");
+      return;
+    }
+    if (followUpType === "interval" && Number(followUpInterval) < 1) {
+      setError("Follow-up interval must be at least 1 day.");
+      return;
+    }
+    if (followUpType === "weekly" && followUpWeekdays.length === 0) {
+      setError("Pick at least one weekday for follow-up.");
+      return;
+    }
+    if (followUpType === "monthly" && followUpMonthDays.length === 0) {
+      setError("Pick at least one day of the month for follow-up.");
+      return;
+    }
     setBusy(true);
     try {
       const payload = {
@@ -111,7 +148,11 @@ export function TaskFormPage() {
         remarks: remarks || null,
         bottleneck: bottleneck || null,
         correctiveAction: correctiveAction || null,
+        followUpType,
         followUpDate: followUpDate || null,
+        followUpInterval: followUpType === "interval" ? Number(followUpInterval) : null,
+        followUpWeekdays: followUpType === "weekly" ? followUpWeekdays : [],
+        followUpMonthDays: followUpType === "monthly" ? followUpMonthDays : [],
       };
       if (isEdit) {
         await api.put(`/tasks/${id}`, payload);
@@ -227,9 +268,85 @@ export function TaskFormPage() {
             </p>
           )}
 
-          <Field label="Follow-up Date">
-            <input type="date" className={inputClass} value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} />
-          </Field>
+          <div className="rounded-md border border-slate-200 p-3">
+            <Field label="Follow-up Schedule">
+              <select className={inputClass} value={followUpType} onChange={(e) => setFollowUpType(e.target.value as FollowUpType)}>
+                {FOLLOW_UP_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </Field>
+
+            {followUpType === "once" && (
+              <div className="mt-3">
+                <Field label="Follow-up Date">
+                  <input type="date" className={inputClass} value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} />
+                </Field>
+              </div>
+            )}
+
+            {followUpType === "interval" && (
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field label="Every N days">
+                  <input
+                    type="number"
+                    min={1}
+                    className={inputClass}
+                    value={followUpInterval}
+                    onChange={(e) => setFollowUpInterval(e.target.value)}
+                  />
+                  <span className="mt-1 block text-xs text-slate-500">e.g. 2 = alternate days, 3 = every 3rd day.</span>
+                </Field>
+                <Field label="Start From (optional)">
+                  <input type="date" className={inputClass} value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} />
+                </Field>
+              </div>
+            )}
+
+            {followUpType === "weekly" && (
+              <div className="mt-3">
+                <span className="mb-1 block text-xs uppercase tracking-wide text-slate-400">Weekdays</span>
+                <div className="flex flex-wrap gap-2">
+                  {WEEKDAY_NAMES.map((name, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setFollowUpWeekdays((w) => toggle(w, i))}
+                      className={`rounded-md border px-3 py-1 text-sm ${
+                        followUpWeekdays.includes(i)
+                          ? "border-wh-blue bg-wh-blue/10 text-wh-navy"
+                          : "border-slate-300 text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {followUpType === "monthly" && (
+              <div className="mt-3">
+                <span className="mb-1 block text-xs uppercase tracking-wide text-slate-400">Days of month</span>
+                <div className="flex flex-wrap gap-1">
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setFollowUpMonthDays((m) => toggle(m, d))}
+                      className={`h-8 w-8 rounded-md border text-xs ${
+                        followUpMonthDays.includes(d)
+                          ? "border-wh-blue bg-wh-blue/10 text-wh-navy"
+                          : "border-slate-300 text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="flex gap-2">
             <Button type="submit" disabled={busy}>{busy ? "Saving…" : isEdit ? "Save Changes" : "Create Task"}</Button>

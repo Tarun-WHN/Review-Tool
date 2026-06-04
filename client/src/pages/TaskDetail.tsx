@@ -91,7 +91,14 @@ export function TaskDetailPage() {
           <Info label="Duration" value={`${task.durationDays} days`} />
           <Info label="Due In" value={task.dueIn} />
           <Info label="Overdue" value={task.overdueDays > 0 ? `${task.overdueDays} days` : "—"} />
-          <Info label="Follow-up" value={task.followUpDate ?? "—"} />
+          <Info label="Follow-up Schedule" value={task.followUpLabel || "None"} />
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-slate-400">Next Follow-up</dt>
+            <dd className="text-slate-800">
+              {task.nextFollowUp ?? "—"}
+              {task.followUpDue && <Badge tone="amber">Due today</Badge>}
+            </dd>
+          </div>
           <Info label="Completed" value={task.completedAt ? new Date(task.completedAt).toLocaleString() : "—"} />
         </dl>
         <div className="mt-4 space-y-2 text-sm">
