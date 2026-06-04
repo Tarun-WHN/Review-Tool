@@ -39,6 +39,7 @@ export function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [counts, setCounts] = useState<StatusCounts | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Filter option sources
   const [categories, setCategories] = useState<Category[]>([]);
@@ -77,7 +78,19 @@ export function DashboardPage() {
         setCounts(r.counts);
       })
       .finally(() => setLoading(false));
-  }, [query, scope]);
+  }, [query, scope, refreshKey]);
+
+  const canComplete = (t: Task) =>
+    !t.completedAt && (user?.role === "admin" || user?.role === "manager" || user?.id === t.ownerId);
+
+  async function completeTask(id: number) {
+    try {
+      await api.post(`/tasks/${id}/complete`);
+      setRefreshKey((k) => k + 1);
+    } catch {
+      /* ignore — surfaced on the detail page if needed */
+    }
+  }
 
   function set<K extends keyof Filters>(key: K, value: string) {
     setFilters((f) => ({ ...f, [key]: value, ...(key === "categoryId" ? { taskMasterId: "" } : {}) }));
@@ -207,7 +220,7 @@ export function DashboardPage() {
       ) : loading ? (
         <div className="text-sm text-slate-400">Loading tasks…</div>
       ) : (
-        <TaskTable tasks={tasks} />
+        <TaskTable tasks={tasks} onComplete={completeTask} canComplete={canComplete} />
       )}
     </div>
   );

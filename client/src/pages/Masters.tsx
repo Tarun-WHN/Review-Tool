@@ -42,32 +42,61 @@ export function MastersPage() {
 
 /* ----------------------------- Categories ----------------------------- */
 
+const EMPTY_CATEGORY = {
+  name: "",
+  delayProfile: "relative" as "relative" | "absolute",
+  delayedThreshold: "1.5",
+  criticalThreshold: "2.0",
+  deadDays: "25",
+  atRiskLeadDays: "3",
+};
+
 function CategoriesTab() {
   const [rows, setRows] = useState<Category[]>([]);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({
-    name: "",
-    delayProfile: "relative" as "relative" | "absolute",
-    delayedThreshold: "1.5",
-    criticalThreshold: "2.0",
-    deadDays: "25",
-  });
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState({ ...EMPTY_CATEGORY });
 
   const load = () => api.get<Category[]>("/categories?all=true").then(setRows);
   useEffect(() => { load(); }, []);
 
+  function resetForm() {
+    setEditingId(null);
+    setForm({ ...EMPTY_CATEGORY });
+  }
+
+  function startEdit(c: Category) {
+    setEditingId(c.id);
+    setError("");
+    setForm({
+      name: c.name,
+      delayProfile: c.delayProfile,
+      delayedThreshold: String(c.delayedThreshold),
+      criticalThreshold: String(c.criticalThreshold),
+      deadDays: String(c.deadDays),
+      atRiskLeadDays: String(c.atRiskLeadDays),
+    });
+  }
+
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    const payload = {
+      name: form.name,
+      delayProfile: form.delayProfile,
+      delayedThreshold: Number(form.delayedThreshold),
+      criticalThreshold: Number(form.criticalThreshold),
+      deadDays: Number(form.deadDays),
+      atRiskLeadDays: Number(form.atRiskLeadDays),
+    };
+    if (payload.criticalThreshold <= payload.delayedThreshold) {
+      setError("Critical threshold must be greater than Delayed threshold.");
+      return;
+    }
     try {
-      await api.post("/categories", {
-        name: form.name,
-        delayProfile: form.delayProfile,
-        delayedThreshold: Number(form.delayedThreshold),
-        criticalThreshold: Number(form.criticalThreshold),
-        deadDays: Number(form.deadDays),
-      });
-      setForm({ ...form, name: "" });
+      if (editingId) await api.put(`/categories/${editingId}`, payload);
+      else await api.post("/categories", payload);
+      resetForm();
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
@@ -83,7 +112,10 @@ function CategoriesTab() {
     <div className="space-y-4">
       <ErrorText>{error}</ErrorText>
       <Card>
-        <form onSubmit={save} className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="mb-2 text-sm font-medium text-slate-700">
+          {editingId ? "Edit category" : "Add category"}
+        </div>
+        <form onSubmit={save} className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-7">
           <Field label="Name"><input className={inputClass} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></Field>
           <Field label="Profile">
             <select className={inputClass} value={form.delayProfile} onChange={(e) => setForm({ ...form, delayProfile: e.target.value as "relative" | "absolute" })}>
@@ -94,17 +126,26 @@ function CategoriesTab() {
           <Field label="Delayed"><input type="number" step="0.1" className={inputClass} value={form.delayedThreshold} onChange={(e) => setForm({ ...form, delayedThreshold: e.target.value })} /></Field>
           <Field label="Critical"><input type="number" step="0.1" className={inputClass} value={form.criticalThreshold} onChange={(e) => setForm({ ...form, criticalThreshold: e.target.value })} /></Field>
           <Field label="Dead Days"><input type="number" className={inputClass} value={form.deadDays} onChange={(e) => setForm({ ...form, deadDays: e.target.value })} /></Field>
-          <div className="flex items-end"><Button type="submit" className="w-full">Add</Button></div>
+          <Field label="At-Risk Lead"><input type="number" min="0" className={inputClass} value={form.atRiskLeadDays} onChange={(e) => setForm({ ...form, atRiskLeadDays: e.target.value })} /></Field>
+          <div className="flex items-end gap-2">
+            <Button type="submit" className="w-full">{editingId ? "Save" : "Add"}</Button>
+            {editingId && <Button type="button" variant="ghost" onClick={resetForm}>Cancel</Button>}
+          </div>
         </form>
         <p className="mt-2 text-xs text-slate-500">
           Relative thresholds are multiples of the task's duration; absolute thresholds are fixed day counts past the end date.
+          <br />
+          <strong>At-Risk Lead</strong> = days <em>before</em> the end date a task turns “At Risk” (e.g. 1 = the day before it's due; 0 = only on/after the due date).
         </p>
       </Card>
       <MasterTable
-        headers={["Name", "Profile", "Delayed", "Critical", "Dead", "Active", ""]}
+        headers={["Name", "Profile", "Delayed", "Critical", "Dead", "At-Risk Lead", "Active", ""]}
         rows={rows.map((c) => [
-          c.name, c.delayProfile, c.delayedThreshold, c.criticalThreshold, c.deadDays, c.active ? "Yes" : "No",
-          <Button key="t" variant="ghost" onClick={() => toggleActive(c)}>{c.active ? "Deactivate" : "Activate"}</Button>,
+          c.name, c.delayProfile, c.delayedThreshold, c.criticalThreshold, c.deadDays, c.atRiskLeadDays, c.active ? "Yes" : "No",
+          <div key="a" className="flex gap-2">
+            <Button variant="ghost" onClick={() => startEdit(c)}>Edit</Button>
+            <Button variant="ghost" onClick={() => toggleActive(c)}>{c.active ? "Deactivate" : "Activate"}</Button>
+          </div>,
         ])}
       />
     </div>

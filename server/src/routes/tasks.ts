@@ -247,6 +247,7 @@ tasksRouter.post("/", async (req: AuthedRequest, res) => {
       delayedThreshold: category.delayedThreshold,
       criticalThreshold: category.criticalThreshold,
       deadDays: category.deadDays,
+      atRiskLeadDays: category.atRiskLeadDays,
     },
   });
   if (requiresCorrectiveFields(status) && (!d.bottleneck || !d.correctiveAction)) {
@@ -399,6 +400,7 @@ tasksRouter.put("/:id", async (req: AuthedRequest, res) => {
       delayedThreshold: finalCategory!.delayedThreshold,
       criticalThreshold: finalCategory!.criticalThreshold,
       deadDays: finalCategory!.deadDays,
+      atRiskLeadDays: finalCategory!.atRiskLeadDays,
     },
   });
   if (requiresCorrectiveFields(status)) {

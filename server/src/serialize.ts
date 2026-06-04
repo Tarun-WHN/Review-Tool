@@ -23,6 +23,7 @@ export function serializeTask(task: TaskWithRelations, now = new Date()) {
       delayedThreshold: task.category.delayedThreshold,
       criticalThreshold: task.category.criticalThreshold,
       deadDays: task.category.deadDays,
+      atRiskLeadDays: task.category.atRiskLeadDays,
     },
     now,
   });

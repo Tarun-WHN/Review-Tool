@@ -62,6 +62,7 @@ model Category {
   delayedThreshold Float        @map("delayed_threshold")
   criticalThreshold Float       @map("critical_threshold")
   deadDays         Int          @default(25) @map("dead_days")
+  atRiskLeadDays   Int          @default(3) @map("at_risk_lead_days")
 
   taskMasters TaskMaster[]
   taskEntries TaskEntry[]

@@ -1,9 +1,20 @@
 import { useNavigate } from "react-router-dom";
 import { Task } from "../types";
-import { StatusChip, Badge } from "../ui";
+import { StatusChip, Badge, Button } from "../ui";
 
-export function TaskTable({ tasks, compact = false }: { tasks: Task[]; compact?: boolean }) {
+export function TaskTable({
+  tasks,
+  compact = false,
+  onComplete,
+  canComplete,
+}: {
+  tasks: Task[];
+  compact?: boolean;
+  onComplete?: (id: number) => void;
+  canComplete?: (task: Task) => boolean;
+}) {
   const navigate = useNavigate();
+  const showActions = Boolean(onComplete);
   if (tasks.length === 0) {
     return <div className="rounded-md border border-dashed border-slate-300 p-6 text-center text-sm text-slate-400">No tasks.</div>;
   }
@@ -20,6 +31,7 @@ export function TaskTable({ tasks, compact = false }: { tasks: Task[]; compact?:
             <th className="px-3 py-2">Overdue</th>
             <th className="px-3 py-2">Follow-up</th>
             <th className="px-3 py-2">Flags</th>
+            {showActions && <th className="px-3 py-2">Actions</th>}
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -56,6 +68,17 @@ export function TaskTable({ tasks, compact = false }: { tasks: Task[]; compact?:
               <td className="px-3 py-2">
                 {t.endDateChangeCount > 0 && <Badge tone="purple">Date changed ×{t.endDateChangeCount}</Badge>}
               </td>
+              {showActions && (
+                <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                  {!t.completedAt && (canComplete ? canComplete(t) : true) ? (
+                    <Button variant="secondary" onClick={() => onComplete?.(t.id)}>Mark Done</Button>
+                  ) : t.completedAt ? (
+                    <span className="text-xs text-slate-400">Completed</span>
+                  ) : (
+                    <span className="text-slate-400">—</span>
+                  )}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

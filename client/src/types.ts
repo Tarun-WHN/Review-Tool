@@ -27,6 +27,7 @@ export interface Category {
   delayedThreshold: number;
   criticalThreshold: number;
   deadDays: number;
+  atRiskLeadDays: number;
 }
 
 export interface TaskMaster {

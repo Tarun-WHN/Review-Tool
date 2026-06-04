@@ -15,6 +15,9 @@ export interface DelaySettings {
   delayedThreshold: number;
   criticalThreshold: number;
   deadDays: number;
+  // Days before the end date at which a task flips to "At Risk".
+  // e.g. 1 → at risk the day before it's due; 0 → only on/after the due date.
+  atRiskLeadDays: number;
 }
 
 export interface DerivedFields {
@@ -58,18 +61,22 @@ export function computeStatus(args: {
 
   if (overdueDays >= settings.deadDays) return "Dead";
 
+  // "At Risk" begins atRiskLeadDays before the end date and lasts until the
+  // task crosses the Delayed threshold. overdueDays >= -leadDays means the due
+  // date is within `leadDays` away (or already passed).
+  const leadDays = Math.max(0, settings.atRiskLeadDays ?? 0);
+  const atRisk = overdueDays >= -leadDays;
+
   if (settings.delayProfile === "relative") {
     if (overdueDays > settings.criticalThreshold * durationDays) return "Critically Delayed";
     if (overdueDays > settings.delayedThreshold * durationDays) return "Delayed";
-    if (overdueDays > 0) return "At Risk";
-    return "Ongoing";
+    return atRisk ? "At Risk" : "Ongoing";
   }
 
   // absolute
   if (overdueDays > settings.criticalThreshold) return "Critically Delayed";
   if (overdueDays > settings.delayedThreshold) return "Delayed";
-  if (overdueDays > 0) return "At Risk";
-  return "Ongoing";
+  return atRisk ? "At Risk" : "Ongoing";
 }
 
 export function deriveFields(args: {

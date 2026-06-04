@@ -63,6 +63,7 @@ async function main() {
           delayedThreshold: c.delayedThreshold,
           criticalThreshold: c.criticalThreshold,
           deadDays: 25,
+          atRiskLeadDays: 3,
         },
       });
       console.log(`  + category: ${c.name}`);

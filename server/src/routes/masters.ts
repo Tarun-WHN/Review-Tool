@@ -18,6 +18,7 @@ const categorySchema = z.object({
   delayedThreshold: z.number().positive(),
   criticalThreshold: z.number().positive(),
   deadDays: z.number().int().positive().optional(),
+  atRiskLeadDays: z.number().int().min(0).optional(),
 });
 
 mastersRouter.get("/categories", async (req, res) => {
@@ -44,6 +45,7 @@ mastersRouter.post("/categories", adminOnly, async (req: AuthedRequest, res) => 
       delayedThreshold: d.delayedThreshold,
       criticalThreshold: d.criticalThreshold,
       deadDays: d.deadDays ?? 25,
+      atRiskLeadDays: d.atRiskLeadDays ?? 3,
     },
   });
   await writeAudit({ actorId: req.user!.id, action: "category.create", details: { id: category.id, name: category.name } });
@@ -54,7 +56,11 @@ mastersRouter.put("/categories/:id", adminOnly, async (req: AuthedRequest, res) 
   const id = Number(req.params.id);
   const parsed = categorySchema.partial().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() });
-  const category = await prisma.category.update({ where: { id }, data: parsed.data });
+  const d = parsed.data;
+  if (d.delayedThreshold !== undefined && d.criticalThreshold !== undefined && d.criticalThreshold <= d.delayedThreshold) {
+    return res.status(400).json({ error: "criticalThreshold must be greater than delayedThreshold" });
+  }
+  const category = await prisma.category.update({ where: { id }, data: d });
   await writeAudit({ actorId: req.user!.id, action: "category.update", details: { id } });
   res.json(category);
 });
