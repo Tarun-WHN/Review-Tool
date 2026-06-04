@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  manager
+  member
+}
+
+enum DelayProfile {
+  relative
+  absolute
+}
+
+enum ChangeRequestStatus {
+  pending
+  approved
+  rejected
+}
+
+model User {
+  id                 Int      @id @default(autoincrement())
+  name               String
+  email              String   @unique
+  passwordHash       String   @map("password_hash")
+  role               Role     @default(member)
+  reportingManagerId Int?     @map("reporting_manager_id")
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  reportingManager User?  @relation("Reports", fields: [reportingManagerId], references: [id])
+  directReports    User[] @relation("Reports")
+
+  ownedTasks       TaskEntry[]            @relation("OwnerTasks")
+  createdTasks     TaskEntry[]            @relation("CreatedTasks")
+  changeRequests   EndDateChangeRequest[] @relation("RequestedBy")
+  decidedRequests  EndDateChangeRequest[] @relation("DecidedBy")
+  auditEntries     AuditLog[]
+
+  @@map("users")
+}
+
+model Category {
+  id               Int          @id @default(autoincrement())
+  name             String
+  active           Boolean      @default(true)
+  delayProfile     DelayProfile @default(relative) @map("delay_profile")
+  delayedThreshold Float        @map("delayed_threshold")
+  criticalThreshold Float       @map("critical_threshold")
+  deadDays         Int          @default(25) @map("dead_days")
+
+  taskMasters TaskMaster[]
+  taskEntries TaskEntry[]
+
+  @@map("categories")
+}
+
+model TaskMaster {
+  id         Int     @id @default(autoincrement())
+  categoryId Int     @map("category_id")
+  name       String
+  active     Boolean @default(true)
+
+  category    Category    @relation(fields: [categoryId], references: [id])
+  taskEntries TaskEntry[]
+
+  @@map("task_masters")
+}
+
+model Client {
+  id     Int     @id @default(autoincrement())
+  name   String
+  active Boolean @default(true)
+
+  taskEntries TaskEntry[]
+
+  @@map("clients")
+}
+
+model Warehouse {
+  id     Int     @id @default(autoincrement())
+  name   String
+  active Boolean @default(true)
+
+  taskEntries TaskEntry[]
+
+  @@map("warehouses")
+}
+
+model TaskEntry {
+  id                 Int       @id @default(autoincrement())
+  categoryId         Int       @map("category_id")
+  taskMasterId       Int       @map("task_master_id")
+  description        String
+  clientId           Int?      @map("client_id")
+  warehouseId        Int?      @map("warehouse_id")
+  ownerId            Int       @map("owner_id")
+  createdById        Int       @map("created_by")
+  startDate          DateTime  @map("start_date") @db.Date
+  endDate            DateTime  @map("end_date") @db.Date
+  completedAt        DateTime? @map("completed_at")
+  remarks            String?
+  bottleneck         String?
+  correctiveAction   String?   @map("corrective_action")
+  followUpDate       DateTime? @map("follow_up_date") @db.Date
+  endDateChangeCount Int       @default(0) @map("end_date_change_count")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  category   Category   @relation(fields: [categoryId], references: [id])
+  taskMaster TaskMaster @relation(fields: [taskMasterId], references: [id])
+  client     Client?    @relation(fields: [clientId], references: [id])
+  warehouse  Warehouse? @relation(fields: [warehouseId], references: [id])
+  owner      User       @relation("OwnerTasks", fields: [ownerId], references: [id])
+  createdBy  User       @relation("CreatedTasks", fields: [createdById], references: [id])
+
+  changeRequests EndDateChangeRequest[]
+  auditEntries   AuditLog[]
+
+  @@map("task_entries")
+}
+
+model EndDateChangeRequest {
+  id          Int                 @id @default(autoincrement())
+  taskId      Int                 @map("task_id")
+  requestedById Int               @map("requested_by")
+  oldEndDate  DateTime            @map("old_end_date") @db.Date
+  newEndDate  DateTime            @map("new_end_date") @db.Date
+  reason      String
+  status      ChangeRequestStatus @default(pending)
+  decidedById Int?                @map("decided_by")
+  decidedAt   DateTime?           @map("decided_at")
+  createdAt   DateTime            @default(now()) @map("created_at")
+
+  task        TaskEntry @relation(fields: [taskId], references: [id])
+  requestedBy User      @relation("RequestedBy", fields: [requestedById], references: [id])
+  decidedBy   User?     @relation("DecidedBy", fields: [decidedById], references: [id])
+
+  @@map("end_date_change_requests")
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  taskId    Int?     @map("task_id")
+  actorId   Int      @map("actor_id")
+  action    String
+  details   Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  task  TaskEntry? @relation(fields: [taskId], references: [id])
+  actor User       @relation(fields: [actorId], references: [id])
+
+  @@map("audit_log")
+}
