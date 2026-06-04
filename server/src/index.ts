@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import path from "path";
+import fs from "fs";
 import { config } from "./config";
 import { authRouter } from "./routes/auth";
 import { mastersRouter } from "./routes/masters";
@@ -22,6 +24,20 @@ app.use("/api", mastersRouter); // /api/categories, /api/task-masters, /api/clie
 app.use("/api/tasks", tasksRouter);
 app.use("/api", changeRequestsRouter); // /api/approvals, /api/change-requests/:id/decide, /api/tasks/:id/change-requests
 app.use("/api/reports", reportsRouter);
+
+// Serve the built React client (single-service hosting). The client talks to
+// same-origin /api when VITE_API_BASE_URL is blank. Works in dev (tsx, __dirname
+// = server/src) and prod (compiled, __dirname = server/dist) — both resolve to
+// the repo's client/dist.
+const clientDist = path.resolve(__dirname, "../../client/dist");
+if (fs.existsSync(clientDist)) {
+  app.use(express.static(clientDist));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api/")) return next();
+    res.sendFile(path.join(clientDist, "index.html"));
+  });
+  console.log(`Serving client from ${clientDist}`);
+}
 
 // Centralized error handler.
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

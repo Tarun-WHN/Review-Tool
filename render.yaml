@@ -1,5 +1,6 @@
 # Render Blueprint for Warehouse Now Review Tool
-# Provisions: managed Postgres + Express API (web service) + React static site.
+# Single web service: Express serves the REST API AND the built React client.
+# Plus a managed Postgres database.
 databases:
   - name: review-tool-db
     plan: free
@@ -7,13 +8,13 @@ databases:
     user: review_tool
 
 services:
-  # ---- Backend API ----
   - type: web
-    name: review-tool-api
+    name: review-tool
     runtime: node
-    plan: free
+    plan: starter
     rootDir: .
-    buildCommand: npm install && npm --workspace server run build && npm --workspace server run migrate:deploy && npm --workspace server run seed
+    # Build server + client, apply DB migrations, then seed (idempotent).
+    buildCommand: npm install && npm run build && npm --workspace server run migrate:deploy && npm --workspace server run seed
     startCommand: npm --workspace server run start
     healthCheckPath: /api/health
     envVars:
@@ -27,29 +28,10 @@ services:
         value: 7d
       - key: NODE_VERSION
         value: "20"
-      - key: CLIENT_ORIGIN
-        # Set this to your static site URL after first deploy, e.g.
-        # https://review-tool-web.onrender.com
-        sync: false
+      # Client is served same-origin, so no VITE_API_BASE_URL / CLIENT_ORIGIN needed.
       - key: SEED_ADMIN_NAME
         value: Admin
       - key: SEED_ADMIN_EMAIL
         value: admin@warehousenow.local
       - key: SEED_ADMIN_PASSWORD
         sync: false
-
-  # ---- Frontend static site ----
-  - type: web
-    name: review-tool-web
-    runtime: static
-    rootDir: .
-    buildCommand: npm install && npm --workspace client run build
-    staticPublishPath: ./client/dist
-    envVars:
-      - key: VITE_API_BASE_URL
-        # Set to the API service URL, e.g. https://review-tool-api.onrender.com
-        sync: false
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
