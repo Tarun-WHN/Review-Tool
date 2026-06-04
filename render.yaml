@@ -1,9 +1,10 @@
 # Render Blueprint for Warehouse Now Review Tool
-# Single web service: Express serves the REST API AND the built React client.
-# Plus a managed Postgres database.
+# Fully self-contained: one paid (Starter) web service that serves the REST API
+# AND the built React client, plus a managed Postgres database.
+# Everything below is wired automatically — no manual env vars to set.
 databases:
   - name: review-tool-db
-    plan: free
+    plan: free # 90-day free Postgres; upgrade to a paid instance in the dashboard for permanence
     databaseName: review_tool
     user: review_tool
 
@@ -11,27 +12,29 @@ services:
   - type: web
     name: review-tool
     runtime: node
-    plan: starter
+    plan: starter # $7 paid plan
     rootDir: .
     # Build server + client, apply DB migrations, then seed (idempotent).
     buildCommand: npm install && npm run build && npm --workspace server run migrate:deploy && npm --workspace server run seed
     startCommand: npm --workspace server run start
     healthCheckPath: /api/health
     envVars:
+      # Auto-wired from the database above — no manual entry.
       - key: DATABASE_URL
         fromDatabase:
           name: review-tool-db
           property: connectionString
+      # Auto-generated random secret — no manual entry.
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: NODE_VERSION
         value: "20"
-      # Client is served same-origin, so no VITE_API_BASE_URL / CLIENT_ORIGIN needed.
+      # Seed admin (change the password from inside the app after first login).
       - key: SEED_ADMIN_NAME
         value: Admin
       - key: SEED_ADMIN_EMAIL
         value: admin@warehousenow.local
       - key: SEED_ADMIN_PASSWORD
-        sync: false
+        value: WarehouseNow#2026
