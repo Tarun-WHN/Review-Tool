@@ -80,6 +80,20 @@ export function DashboardPage() {
       .finally(() => setLoading(false));
   }, [query, scope, refreshKey]);
 
+  // Default view groups tasks client-wise (Chumbak, Chumbak, …, Flipkart, …),
+  // then by warehouse and end date. Tasks without a client sort last.
+  const sortedTasks = useMemo(() => {
+    return [...tasks].sort((a, b) => {
+      const ca = a.client?.name ?? "￿";
+      const cb = b.client?.name ?? "￿";
+      if (ca !== cb) return ca.localeCompare(cb);
+      const wa = a.warehouse?.name ?? "￿";
+      const wb = b.warehouse?.name ?? "￿";
+      if (wa !== wb) return wa.localeCompare(wb);
+      return a.endDate.localeCompare(b.endDate);
+    });
+  }, [tasks]);
+
   const canComplete = (t: Task) =>
     !t.completedAt && (user?.role === "admin" || user?.role === "manager" || user?.id === t.ownerId);
 
@@ -220,7 +234,7 @@ export function DashboardPage() {
       ) : loading ? (
         <div className="text-sm text-slate-400">Loading tasks…</div>
       ) : (
-        <TaskTable tasks={tasks} onComplete={completeTask} canComplete={canComplete} />
+        <TaskTable tasks={sortedTasks} onComplete={completeTask} canComplete={canComplete} />
       )}
     </div>
   );
