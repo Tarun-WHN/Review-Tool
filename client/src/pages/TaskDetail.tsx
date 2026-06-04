@@ -18,6 +18,7 @@ export function TaskDetailPage() {
   const [showCR, setShowCR] = useState(false);
   const [newEndDate, setNewEndDate] = useState("");
   const [reason, setReason] = useState("");
+  const [newRemark, setNewRemark] = useState("");
 
   async function load() {
     const r = await api.get<{ task: Task; changeRequests: ChangeRequest[]; audit: AuditEntry[] }>(`/tasks/${id}`);
@@ -45,6 +46,20 @@ export function TaskDetailPage() {
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Action failed");
+    }
+  }
+
+  async function submitRemark(e: FormEvent) {
+    e.preventDefault();
+    const body = newRemark.trim();
+    if (!body) return;
+    setError("");
+    try {
+      await api.post(`/tasks/${id}/remarks`, { body });
+      setNewRemark("");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to add remark");
     }
   }
 
@@ -104,10 +119,37 @@ export function TaskDetailPage() {
         </dl>
         <div className="mt-4 space-y-2 text-sm">
           <Block label="Description" value={task.description} />
-          <Block label="Remarks" value={task.remarks} />
           <Block label="Bottleneck" value={task.bottleneck} />
           <Block label="Corrective Action" value={task.correctiveAction} />
         </div>
+      </Card>
+
+      {/* Remarks thread */}
+      <Card>
+        <h2 className="mb-3 font-semibold text-slate-800">Remarks</h2>
+        <form onSubmit={submitRemark} className="mb-4 flex flex-col gap-2 sm:flex-row">
+          <textarea
+            className={`${inputClass} min-h-[2.5rem] flex-1`}
+            placeholder="Add a remark…"
+            value={newRemark}
+            onChange={(e) => setNewRemark(e.target.value)}
+          />
+          <Button type="submit" disabled={!newRemark.trim()}>Post</Button>
+        </form>
+        {task.remarksThread.length === 0 ? (
+          <p className="text-sm text-slate-400">No remarks yet.</p>
+        ) : (
+          <ul className="space-y-3">
+            {task.remarksThread.map((r) => (
+              <li key={r.id} className="border-l-2 border-slate-200 pl-3">
+                <div className="whitespace-pre-wrap text-sm text-slate-700">{r.body}</div>
+                <div className="mt-1 text-xs text-slate-400">
+                  {r.author.name} · {new Date(r.createdAt).toLocaleString()}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
 
       {/* Actions */}

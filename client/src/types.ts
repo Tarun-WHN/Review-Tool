@@ -10,6 +10,13 @@ export type TaskStatus =
 
 export type FollowUpType = "none" | "once" | "interval" | "weekly" | "monthly";
 
+export interface Remark {
+  id: number;
+  body: string;
+  author: { id: number; name: string };
+  createdAt: string;
+}
+
 export interface AuthUser {
   id: number;
   name: string;
@@ -78,6 +85,8 @@ export interface Task {
   endDate: string;
   completedAt: string | null;
   remarks: string | null;
+  remarksThread: Remark[];
+  latestRemark: Remark | null;
   bottleneck: string | null;
   correctiveAction: string | null;
   followUpDate: string | null;

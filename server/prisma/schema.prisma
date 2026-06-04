@@ -50,6 +50,7 @@ model User {
   changeRequests   EndDateChangeRequest[] @relation("RequestedBy")
   decidedRequests  EndDateChangeRequest[] @relation("DecidedBy")
   auditEntries     AuditLog[]
+  taskRemarks      TaskRemark[]
 
   @@map("users")
 }
@@ -149,8 +150,23 @@ model TaskEntry {
 
   changeRequests EndDateChangeRequest[]
   auditEntries   AuditLog[]
+  remarksThread  TaskRemark[]
 
   @@map("task_entries")
+}
+
+model TaskRemark {
+  id        Int      @id @default(autoincrement())
+  taskId    Int      @map("task_id")
+  authorId  Int      @map("author_id")
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  task   TaskEntry @relation(fields: [taskId], references: [id])
+  author User      @relation(fields: [authorId], references: [id])
+
+  @@index([taskId])
+  @@map("task_remarks")
 }
 
 model EndDateChangeRequest {

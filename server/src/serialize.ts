@@ -10,6 +10,10 @@ export const taskInclude = {
   vendor: true,
   owner: { select: { id: true, name: true, email: true, role: true } },
   createdBy: { select: { id: true, name: true, email: true } },
+  remarksThread: {
+    orderBy: { createdAt: "desc" },
+    include: { author: { select: { id: true, name: true } } },
+  },
 } satisfies Prisma.TaskEntryInclude;
 
 type TaskWithRelations = Prisma.TaskEntryGetPayload<{ include: typeof taskInclude }>;
@@ -39,6 +43,14 @@ export function serializeTask(task: TaskWithRelations, now = new Date()) {
   const nextFollowUp = computeNextFollowUp(scheduleArg, now);
   const followUpDue = isFollowUpDueToday(scheduleArg, now);
 
+  const remarksThread = task.remarksThread.map((r) => ({
+    id: r.id,
+    body: r.body,
+    author: r.author,
+    createdAt: r.createdAt.toISOString(),
+  }));
+  const latestRemark = remarksThread[0] ?? null;
+
   return {
     id: task.id,
     categoryId: task.categoryId,
@@ -60,6 +72,8 @@ export function serializeTask(task: TaskWithRelations, now = new Date()) {
     endDate: task.endDate.toISOString().slice(0, 10),
     completedAt: task.completedAt ? task.completedAt.toISOString() : null,
     remarks: task.remarks,
+    remarksThread,
+    latestRemark,
     bottleneck: task.bottleneck,
     correctiveAction: task.correctiveAction,
     followUpDate: task.followUpDate ? task.followUpDate.toISOString().slice(0, 10) : null,

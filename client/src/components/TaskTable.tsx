@@ -27,12 +27,14 @@ export function TaskTable({
             {!compact && <th className="px-3 py-2">Client</th>}
             {!compact && <th className="px-3 py-2">Warehouse</th>}
             {!compact && <th className="px-3 py-2">Vendor</th>}
-            <th className="px-3 py-2">Category / Task</th>
+            <th className="px-3 py-2">Task</th>
+            {!compact && <th className="px-3 py-2">Category</th>}
             {!compact && <th className="px-3 py-2">Owner</th>}
             <th className="px-3 py-2">End Date</th>
             <th className="px-3 py-2">Due In</th>
             <th className="px-3 py-2">Overdue</th>
             <th className="px-3 py-2">Follow-up</th>
+            <th className="px-3 py-2">Remarks</th>
             <th className="px-3 py-2">Flags</th>
             {showActions && <th className="px-3 py-2">Actions</th>}
           </tr>
@@ -64,13 +66,16 @@ export function TaskTable({
               )}
               <td className="px-3 py-2">
                 <div className="font-medium text-slate-800">{t.taskMaster.name}</div>
-                <div className="text-xs text-slate-500">
-                  {t.category.name}
-                  {compact && t.client ? ` · ${t.client.name}` : ""}
-                  {compact && t.warehouse ? ` · ${t.warehouse.name}` : ""}
-                  {compact && t.vendor ? ` · ${t.vendor.name}` : ""}
-                </div>
+                {compact && (
+                  <div className="text-xs text-slate-500">
+                    {t.category.name}
+                    {t.client ? ` · ${t.client.name}` : ""}
+                    {t.warehouse ? ` · ${t.warehouse.name}` : ""}
+                    {t.vendor ? ` · ${t.vendor.name}` : ""}
+                  </div>
+                )}
               </td>
+              {!compact && <td className="px-3 py-2 text-slate-600">{t.category.name}</td>}
               {!compact && <td className="px-3 py-2 text-slate-700">{t.owner.name}</td>}
               <td className="px-3 py-2 whitespace-nowrap text-slate-700">{t.endDate}</td>
               <td className="px-3 py-2 text-slate-600">{t.dueIn}</td>
@@ -80,6 +85,19 @@ export function TaskTable({
                   <Badge tone="amber">Due today</Badge>
                 ) : t.nextFollowUp ? (
                   <span className="text-xs text-slate-600">{t.nextFollowUp}</span>
+                ) : (
+                  <span className="text-slate-400">—</span>
+                )}
+              </td>
+              <td className="px-3 py-2 max-w-[16rem]">
+                {t.latestRemark ? (
+                  <div>
+                    <div className="truncate text-slate-700" title={t.latestRemark.body}>{t.latestRemark.body}</div>
+                    <div className="text-xs text-slate-400">
+                      {t.latestRemark.author.name} · {new Date(t.latestRemark.createdAt).toLocaleDateString()}
+                      {t.remarksThread.length > 1 ? ` · +${t.remarksThread.length - 1}` : ""}
+                    </div>
+                  </div>
                 ) : (
                   <span className="text-slate-400">—</span>
                 )}

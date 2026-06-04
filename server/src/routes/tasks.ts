@@ -283,6 +283,13 @@ tasksRouter.post("/", async (req: AuthedRequest, res) => {
     include: taskInclude,
   });
 
+  // Seed the remarks thread with the initial remark, if any.
+  if (d.remarks && d.remarks.trim()) {
+    await prisma.taskRemark.create({
+      data: { taskId: created.id, authorId: me.id, body: d.remarks.trim() },
+    });
+  }
+
   await writeAudit({
     actorId: me.id,
     taskId: created.id,
@@ -290,7 +297,8 @@ tasksRouter.post("/", async (req: AuthedRequest, res) => {
     details: { ownerId: d.ownerId, categoryId: d.categoryId, endDate: d.endDate },
   });
 
-  res.status(201).json(serializeTask(created));
+  const withThread = await prisma.taskEntry.findUnique({ where: { id: created.id }, include: taskInclude });
+  res.status(201).json(serializeTask(withThread!));
 });
 
 /* -------------------------------- Edit -------------------------------- */
@@ -469,4 +477,35 @@ tasksRouter.post("/:id/reopen", async (req: AuthedRequest, res) => {
   });
   await writeAudit({ actorId: me.id, taskId: id, action: "task.reopen" });
   res.json(serializeTask(updated));
+});
+
+/* ------------------------------ Remarks ------------------------------ */
+
+const remarkSchema = z.object({ body: z.string().min(1) });
+
+/** Add a remark to a task's thread. Any user who can view the task may comment. */
+tasksRouter.post("/:id/remarks", async (req: AuthedRequest, res) => {
+  const me = req.user!;
+  const id = Number(req.params.id);
+  const task = await prisma.taskEntry.findUnique({ where: { id } });
+  if (!task) return res.status(404).json({ error: "Task not found" });
+
+  // Visibility: admin/manager(subtree+creator)/owner may add remarks.
+  let allowed = me.role === "admin" || task.ownerId === me.id || task.createdById === me.id;
+  if (!allowed && me.role === "manager") {
+    const subtree = await getSubtreeUserIds(me.id);
+    allowed = subtree.includes(task.ownerId);
+  }
+  if (!allowed) return res.status(403).json({ error: "Not allowed to comment on this task" });
+
+  const parsed = remarkSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() });
+
+  await prisma.taskRemark.create({
+    data: { taskId: id, authorId: me.id, body: parsed.data.body.trim() },
+  });
+  await writeAudit({ actorId: me.id, taskId: id, action: "task.remark" });
+
+  const updated = await prisma.taskEntry.findUnique({ where: { id }, include: taskInclude });
+  res.status(201).json(serializeTask(updated!));
 });
