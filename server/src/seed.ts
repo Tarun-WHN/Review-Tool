@@ -94,7 +94,113 @@ async function main() {
   }
 
   // Clients & Warehouses are intentionally left empty for the admin to populate.
+
+  await seedDemoTasks();
+
   console.log("Seed complete.");
+}
+
+// One sample task per status so the dashboard can be tested end-to-end.
+// Uses the absolute-profile "Warehouse Ops – BAU" category:
+//   At Risk: overdue 1–3d · Delayed: >3d · Critically Delayed: >5d · Dead: ≥25d.
+// Idempotent: every demo task description starts with "[DEMO]".
+async function seedDemoTasks() {
+  const admin = await prisma.user.findUnique({ where: { email: config.seedAdmin.email.toLowerCase() } });
+  if (!admin) return;
+
+  const category = await prisma.category.findFirst({ where: { name: "Warehouse Ops – BAU" } });
+  if (!category) return;
+  const taskMaster = await prisma.taskMaster.findFirst({ where: { categoryId: category.id } });
+  if (!taskMaster) return;
+
+  const existingDemo = await prisma.taskEntry.findFirst({ where: { description: { startsWith: "[DEMO]" } } });
+  if (existingDemo) {
+    console.log("  ~ demo tasks already present, skipping");
+    return;
+  }
+
+  const DAY = 86400000;
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const dateOnly = (offsetDays: number) => new Date(today.getTime() + offsetDays * DAY);
+
+  interface DemoTask {
+    label: string;
+    startOffset: number;
+    endOffset: number;
+    completed?: boolean;
+    bottleneck?: string;
+    correctiveAction?: string;
+    followUp?: {
+      followUpType: "once" | "interval" | "weekly" | "monthly";
+      followUpDate?: Date | null;
+      followUpInterval?: number | null;
+      followUpWeekdays?: number[];
+      followUpMonthDays?: number[];
+    };
+  }
+
+  const demos: DemoTask[] = [
+    // Ongoing: ends in the future.
+    {
+      label: "Ongoing",
+      startOffset: -5,
+      endOffset: 10,
+      followUp: { followUpType: "interval", followUpInterval: 2, followUpDate: dateOnly(0) }, // due today
+    },
+    // At Risk: 2 days overdue (≤3).
+    { label: "At Risk", startOffset: -10, endOffset: -2 },
+    // Delayed: 4 days overdue (>3, ≤5).
+    {
+      label: "Delayed",
+      startOffset: -14,
+      endOffset: -4,
+      bottleneck: "Awaiting vendor confirmation.",
+      correctiveAction: "Escalated to procurement lead.",
+    },
+    // Critically Delayed: 10 days overdue (>5, <25).
+    {
+      label: "Critically Delayed",
+      startOffset: -20,
+      endOffset: -10,
+      bottleneck: "Manpower shortage at site.",
+      correctiveAction: "Hiring drive initiated; temp staff arranged.",
+      followUp: { followUpType: "weekly", followUpWeekdays: [1, 4] }, // Mon & Thu
+    },
+    // Dead: 30 days overdue (≥25).
+    {
+      label: "Dead",
+      startOffset: -45,
+      endOffset: -30,
+      bottleneck: "Client put project on hold indefinitely.",
+      correctiveAction: "Pending client decision to revive.",
+    },
+    // Completed.
+    { label: "Completed", startOffset: -12, endOffset: -3, completed: true },
+  ];
+
+  for (const d of demos) {
+    await prisma.taskEntry.create({
+      data: {
+        categoryId: category.id,
+        taskMasterId: taskMaster.id,
+        description: `[DEMO] ${d.label} sample task`,
+        ownerId: admin.id,
+        createdById: admin.id,
+        startDate: dateOnly(d.startOffset),
+        endDate: dateOnly(d.endOffset),
+        completedAt: d.completed ? new Date() : null,
+        bottleneck: d.bottleneck ?? null,
+        correctiveAction: d.correctiveAction ?? null,
+        followUpType: d.followUp?.followUpType ?? "none",
+        followUpDate: d.followUp?.followUpDate ?? null,
+        followUpInterval: d.followUp?.followUpInterval ?? null,
+        followUpWeekdays: d.followUp?.followUpWeekdays ?? [],
+        followUpMonthDays: d.followUp?.followUpMonthDays ?? [],
+      },
+    });
+    console.log(`  + demo task: ${d.label}`);
+  }
 }
 
 main()
